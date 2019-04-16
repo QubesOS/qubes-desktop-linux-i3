@@ -255,15 +255,15 @@ diff -ruN i3-4.16/src/config.c i3-4.16-patch/src/config.c
 +    INIT_COLOR(config.client[QUBE_PURPLE].urgent,
 +        "#8f5cbe", "#c6abdd", "#ce0000", "#c6abdd");
 +
-+    config.client[QUBE_BLACK].background = draw_util_hex_to_color("#121212");
++    config.client[QUBE_BLACK].background = draw_util_hex_to_color("#141414");
 +    INIT_COLOR(config.client[QUBE_BLACK].focused,
-+        "#595959", "#595959", "#ffffff", "#a3a3a3");
++        "#5b5b5b", "#333333", "#ffffff", "#cccccc");
 +    INIT_COLOR(config.client[QUBE_BLACK].focused_inactive,
-+        "#595959", "#3a3a3a", "#ffffff", "#a3a3a3");
++        "#5b5b5b", "#1e1e1e", "#e5e5e5", "#e1e1e1");
 +    INIT_COLOR(config.client[QUBE_BLACK].unfocused,
-+        "#595959", "#3a3a3a", "#999999", "#a3a3a3");
++        "#5b5b5b", "#141414", "#cccccc", "#ebebeb");
 +    INIT_COLOR(config.client[QUBE_BLACK].urgent,
-+        "#595959", "#a3a3a3", "#ce0000", "#a3a3a3");
++        "#bd2727", "#e79e27", "#333333", "#27bdbd");
  
      /* border and indicator color are ignored for placeholder contents */
 -    INIT_COLOR(config.client.placeholder, "#000000", "#0c0c0c", "#ffffff", "#000000");
