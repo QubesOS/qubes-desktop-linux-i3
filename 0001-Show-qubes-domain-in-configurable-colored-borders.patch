@@ -245,15 +245,15 @@ diff -ruN i3-4.16/src/config.c i3-4.16-patch/src/config.c
 +    INIT_COLOR(config.client[QUBE_BLUE].urgent,
 +        "#3384d6", "#95bee8", "#ce0000", "#95bee8");
 +
-+    config.client[QUBE_PURPLE].background = draw_util_hex_to_color("#121212");
++    config.client[QUBE_PURPLE].background = draw_util_hex_to_color("#6f276f");
 +    INIT_COLOR(config.client[QUBE_PURPLE].focused,
-+        "#8f5cbe", "#8f5cbe", "#ffffff", "#c6abdd");
++        "#bb73bb", "#9f389f", "#ffffff", "#389f38");
 +    INIT_COLOR(config.client[QUBE_PURPLE].focused_inactive,
-+        "#8f5cbe", "#5c3e78", "#ffffff", "#c6abdd");
++        "#bb73bb", "#7f2c7f", "#e5e5e5", "#2c7f2c");
 +    INIT_COLOR(config.client[QUBE_PURPLE].unfocused,
-+        "#8f5cbe", "#5c3e78", "#999999", "#c6abdd");
++        "#bb73bb", "#6f276f", "#cccccc", "#276f27");
 +    INIT_COLOR(config.client[QUBE_PURPLE].urgent,
-+        "#8f5cbe", "#c6abdd", "#ce0000", "#c6abdd");
++        "#bd2727", "#e79e27", "#333333", "#27bdbd");
 +
 +    config.client[QUBE_BLACK].background = draw_util_hex_to_color("#121212");
 +    INIT_COLOR(config.client[QUBE_BLACK].focused,
