@@ -3,7 +3,7 @@
 %endif
 
 Name:       i3-settings-qubes
-Version:    1.6
+Version:    1.7
 Release:    1%{?dist}
 Summary:    Default i3 settings for Qubes
 
@@ -72,3 +72,5 @@ fi
 %{_bindir}/qubes-i3status
 
 %changelog
+* Tue Nov 30 2021 o- <o@o1o.ch> - 1.7
+- Rebased on https://src.fedoraproject.org/rpms/i3/tree/a814cba055571794e3cfeea2fea5ef1635942545
