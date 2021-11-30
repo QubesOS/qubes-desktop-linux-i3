@@ -3,31 +3,57 @@
 %endif
 
 Name:           i3
-Version:        4.16
-Release:        9%{?dist}
-Epoch:          1000
+Version:        4.20.1
+Release: 	1%{?dist}
 Summary:        Improved tiling window manager
 License:        BSD
 URL:            https://i3wm.org
-Source0:        https://i3wm.org/downloads/%{name}-%{version}.tar.bz2
-Source1:        %{name}-logo.svg
-Patch0:         0001-Show-qubes-domain-in-configurable-colored-borders.patch
+Source0:        %{URL}/downloads/%{name}-%{version}.tar.xz
+Source1:        %{URL}/downloads/%{name}-%{version}.tar.xz.asc
+# Michael Stapelberg's GPG key:
+Source2:        gpgkey-424E14D703E7C6D43D9D6F364E7160ED4AC8EE1D.gpg
+Source3:        %{name}-logo.svg
+Patch0:         0001-Correct-dex-binary-name-dex-dex-autostart.patch
+Patch1:         0001-Show-qubes-domain-in-configurable-colored-borders.patch
 
-# Reference: https://fedoraproject.org/wiki/Changes/Remove_GCC_from_BuildRoot
 BuildRequires:  gcc
-BuildRequires:  asciidoc
-BuildRequires:  bison
-BuildRequires:  cairo-devel
-BuildRequires:  flex
-BuildRequires:  libev-devel
-BuildRequires:  libX11-devel
-BuildRequires:  libxcb-devel
-BuildRequires:  libXcursor-devel
-BuildRequires:  libxkbcommon-x11-devel
-BuildRequires:  libxkbfile-devel
-BuildRequires:  pango-devel
-BuildRequires:  pcre-devel
+# need at least 0.53 to build the documentation
+BuildRequires:  meson >= 0.53
+# from meson.build
+BuildRequires:  pkg-config >= 0.25
+# no pkg-config for libev
+BuildRequires:  libev-devel >= 4.0
+BuildRequires:  pkgconfig(libstartup-notification-1.0)
+BuildRequires:  pkgconfig(xcb) >= 1.1.93
+BuildRequires:  pkgconfig(xcb-xkb)
+BuildRequires:  pkgconfig(xcb-xinerama)
+BuildRequires:  pkgconfig(xcb-randr)
+BuildRequires:  pkgconfig(xcb-shape)
+BuildRequires:  pkgconfig(xcb-event)
+BuildRequires:  pkgconfig(xcb-util)
+BuildRequires:  pkgconfig(xcb-cursor)
+BuildRequires:  pkgconfig(xcb-keysyms)
+BuildRequires:  pkgconfig(xcb-icccm)
+BuildRequires:  pkgconfig(xcb-xrm)
+BuildRequires:  pkgconfig(xkbcommon) >= 0.4.0
+BuildRequires:  pkgconfig(xkbcommon-x11) >= 0.4.0
+BuildRequires:  pkgconfig(yajl) >= 2.0.1
+BuildRequires:  pkgconfig(libpcre) >= 8.10
+BuildRequires:  pkgconfig(cairo) >= 1.14.4
+BuildRequires:  pkgconfig(pangocairo) >= 1.30.0
+BuildRequires:  pkgconfig(glib-2.0)
+BuildRequires:  pkgconfig(gobject-2.0)
+# man pages
+BuildRequires:  asciidoc >= 8.3.0
+BuildRequires:  xmlto >= 0.0.23
+
 # TODO: Testsuites
+BuildRequires:  desktop-file-utils
+BuildRequires:  perl(AnyEvent)
+BuildRequires:  perl(AnyEvent::Util)
+BuildRequires:  perl(AnyEvent::Handle)
+BuildRequires:  perl(AnyEvent::I3)
+BuildRequires:  perl(ExtUtils::MakeMaker)
 #BuildRequires:  perl(strict)
 #BuildRequires:  perl(warnings)
 #BuildRequires:  perl(Pod::Usage)
@@ -45,30 +71,31 @@ BuildRequires:  pcre-devel
 #BuildRequires:  perl(AnyEvent::I3)
 #BuildRequires:  perl(X11::XCB::Connection)
 #BuildRequires:  perl(Carp)
+
 BuildRequires:  perl-generators
-BuildRequires:  perl(Getopt::Long)
-BuildRequires:  perl(Data::Dumper::Names)
-BuildRequires:  startup-notification-devel
-BuildRequires:  xcb-proto
-BuildRequires:  xcb-util-cursor-devel
-BuildRequires:  xcb-util-devel
-BuildRequires:  xcb-util-keysyms-devel
-BuildRequires:  xcb-util-wm-devel
-BuildRequires:  xcb-util-xrm-devel
-BuildRequires:  xmlto
+BuildRequires:  perl(Pod::Simple)
 %ifnarch s390 s390x
 BuildRequires:  xorg-x11-drv-dummy
 %endif
-BuildRequires:  yajl-devel
 
-Requires:       qubes-desktop-linux-common
-Requires:       dmenu
-Requires:       dzen2
+# gpg verification
+BuildRequires:  gnupg2
+
 Requires:       perl(:MODULE_COMPAT_%(eval "`perl -V:version`"; echo $version))
-# TODO: Unknown tag: Recommends
-#%{!?rhel:Recommends:     rxvt-unicode}
-#%{!?rhel:Recommends:     xorg-x11-apps}
 Requires:       xorg-x11-fonts-misc
+Requires:       qubes-desktop-linux-common
+
+# packages autostarted by the config
+Recommends:     dex-autostart
+Recommends:     xss-lock
+Recommends:     pulseaudio-utils
+Recommends:     dmenu
+
+# for i3-save-tree
+Requires:       perl(AnyEvent::I3) >= 0.12
+
+# the config:
+Recommends:     i3-settings-qubes
 
 %description
 Key features of i3 are correct implementation of XrandR, horizontal and vertical
@@ -81,14 +108,14 @@ Please be aware that i3 is primarily targeted at advanced users and developers.
 %package        doc
 Summary:        Documentation for %{name}
 BuildArch:      noarch
-Requires:       %{name} = %{epoch}:%{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 
 %description    doc
 Asciidoc generated documentation for %{name}.
 
 %package        devel
 Summary:        Development files for %{name}
-Requires:       %{name} = %{epoch}:%{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 
 %description    devel
 Header files for %{name}.
@@ -97,41 +124,44 @@ Header files for %{name}.
 Summary:        Documentation for the development files of %{name}
 BuildRequires:  doxygen
 BuildArch:      noarch
-Requires:       %{name} = %{epoch}:%{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 
 %description    devel-doc
 Doxygen generated documentations for %{name}.
 
 %prep
-%setup -q
-%patch0 -p1
+%{gpgverify} --keyring='%{SOURCE2}' --signature='%{SOURCE1}' --data='%{SOURCE0}'
+%autosetup -p1
 
 # Drop /usr/bin/env lines in those which will be installed to %%_bindir.
 find . -maxdepth 1 -type f -name "i3*" -exec sed -i -e '1s;^#!/usr/bin/env perl;#!/usr/bin/perl;' {} + -print
 
 
 %build
-%configure
-%make_build -C *-linux-gnu*
+%meson
+%meson_build
 
 doxygen pseudo-doc.doxygen
 mv pseudo-doc/html pseudo-doc/doxygen
 
 %install
-%make_install -C *-linux-gnu*
+%meson_install
 
 mkdir -p %{buildroot}%{_mandir}/man1/
 install -Dpm0644 man/*.1 \
         %{buildroot}%{_mandir}/man1/
 
 mkdir -p %{buildroot}%{_datadir}/pixmaps/
-install -Dpm0644 %{SOURCE1} \
+install -Dpm0644 %{SOURCE3} \
         %{buildroot}%{_datadir}/pixmaps/
 
 %check
+desktop-file-validate %{buildroot}%{_datadir}/applications/i3.desktop
+
 %ifnarch s390 s390x
 # TODO: with xorg dummy to test the package.
-#cd testcases/ && ./complete-run.pl -p 1
+# TODO: get remaining dependencies in
+# %%meson_test
 %endif
 
 %files
@@ -139,14 +169,14 @@ install -Dpm0644 %{SOURCE1} \
 %license LICENSE
 %{_bindir}/%{name}*
 %dir %{_sysconfdir}/%{name}/
-%config(noreplace) %{_sysconfdir}/%{name}/config
-%config(noreplace) %{_sysconfdir}/%{name}/config.keycodes
 %{_datadir}/xsessions/%{name}.desktop
 %{_datadir}/xsessions/%{name}-with-shmlog.desktop
 %{_mandir}/man*/%{name}*
 %{_datadir}/pixmaps/%{name}-logo.svg
 %{_datadir}/applications/%{name}.desktop
 %exclude %{_docdir}/%{name}/
+%config(noreplace) %{_sysconfdir}/%{name}/config
+%config %{_sysconfdir}/%{name}/config.keycodes
 
 %files doc
 %license LICENSE
@@ -161,6 +191,9 @@ install -Dpm0644 %{SOURCE1} \
 %doc pseudo-doc/doxygen/
 
 %changelog
+* Tue Nov 30 2021 o- <o@o1o.ch> - 4.20.1
+- Rebased on https://src.fedoraproject.org/rpms/i3/tree/a814cba055571794e3cfeea2fea5ef1635942545
+- Udate to 4.20.1
 
 * Sat Nov 17 2018 anadahz <andz@torproject.org> - 4.16.1
 - new version for Qubes OS

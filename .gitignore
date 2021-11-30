@@ -3,3 +3,5 @@ srpm/
 pkgs/
 */*.tar.gz
 */*.tar.bz2
+*/*.tar.xz
+*/*.tar.xz.asc

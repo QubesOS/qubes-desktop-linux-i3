@@ -1,0 +1,41 @@
+From 0620db7a25e7b4142919b1209734f276bdb1cc9b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Dan=20=C4=8Cerm=C3=A1k?= <dan.cermak@cgc-instruments.com>
+Date: Tue, 2 Nov 2021 20:13:26 +0100
+Subject: [PATCH] Correct dex binary name: dex -> dex-autostart
+
+This is a downstream only change and will probably have to be maintained in
+Fedora indefinitely :-/
+---
+ etc/config          | 2 +-
+ etc/config.keycodes | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/etc/config b/etc/config
+index 51902f08..32a43383 100644
+--- a/etc/config
++++ b/etc/config
+@@ -19,7 +19,7 @@ font pango:monospace 8
+ 
+ # Start XDG autostart .desktop files using dex. See also
+ # https://wiki.archlinux.org/index.php/XDG_Autostart
+-exec --no-startup-id dex --autostart --environment i3
++exec --no-startup-id dex-autostart --autostart --environment i3
+ 
+ # The combination of xss-lock, nm-applet and pactl is a popular choice, so
+ # they are included here as an example. Modify as you see fit.
+diff --git a/etc/config.keycodes b/etc/config.keycodes
+index 11a7d46f..5fdba06e 100644
+--- a/etc/config.keycodes
++++ b/etc/config.keycodes
+@@ -20,7 +20,7 @@ font pango:monospace 8
+ 
+ # Start XDG autostart .desktop files using dex. See also
+ # https://wiki.archlinux.org/index.php/XDG_Autostart
+-exec --no-startup-id dex --autostart --environment i3
++exec --no-startup-id dex-autostart --autostart --environment i3
+ 
+ # The combination of xss-lock, nm-applet and pactl is a popular choice, so
+ # they are included here as an example. Modify as you see fit.
+-- 
+2.31.1
+
