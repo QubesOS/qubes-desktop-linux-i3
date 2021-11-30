@@ -29,33 +29,6 @@ DIST_DOM0 ?= fc20
 VER_REL := $(shell rpm $(RPM_DEFINES) -q --qf "%{VERSION}-%{RELEASE}\n" --specfile $(SPECFILE)| head -1|sed -e 's/fc../$(DIST_DOM0)/')
 NAME := $(shell rpm $(RPM_DEFINES) -q --qf "%{NAME}\n" --specfile $(SPECFILE)| head -1)
 
-URL := $(shell spectool $(RPM_DEFINES) --list-files --source 0 $(SPECFILE) 2> /dev/null| cut -d ' ' -f 2- )
-ifndef SRC_FILE
-ifdef URL
-	SRC_FILE := $(notdir $(URL))
-endif
-endif
-
-get-sources: $(SRC_FILE)
-
-$(SRC_FILE):
-ifneq ($(SRC_FILE), None)
-	@spectool $(RPM_DEFINES) --get-files $(SPECFILE) 2> /dev/null
-endif
-
-.PHONY: verify-sources
-
-verify-sources: $(SRC_FILE)
-ifneq ($(SRC_FILE), None)
-	@sha256sum --quiet -c sources
-endif
-
-.PHONY: clean-sources
-clean-sources:
-ifneq ($(SRC_FILE), None)
-	-rm $(SRC_FILE)
-endif
-
 rpms: rpms-dom0
 
 rpms-vm:
@@ -63,7 +36,7 @@ rpms-vm:
 rpms-dom0:
 	rpmbuild $(RPM_DEFINES) -bb $(SPECFILE)
 
-srpms: verify-sources
+srpms:
 	rpmbuild $(RPM_DEFINES) -bs $(SPECFILE)
 
 update-repo-current:
