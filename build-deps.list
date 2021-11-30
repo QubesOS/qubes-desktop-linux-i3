@@ -10,12 +10,15 @@ libev-devel
 libxcb-devel
 libxkbcommon-x11-devel
 libxkbfile-devel
+meson
 pango-devel
 pcre-devel
 perl
 perl-Data-Dumper-Names
 perl-Getopt-Long
 perl-generators
+perl-AnyEvent
+perl-AnyEvent-I3
 rpmdevtools
 startup-notification-devel
 xcb-proto
