@@ -142,7 +142,7 @@ bindcode $mod+Shift+18 move container to workspace number $ws9
 bindcode $mod+Shift+19 move container to workspace number $ws10
 
 # reload the configuration file
-bindcode $mod+Shift+54 reload
+# bindcode $mod+Shift+54 reload
 # restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
 bindcode $mod+Shift+27 restart
 # exit i3 (logs you out of your X session)
