@@ -148,29 +148,34 @@ diff --git a/src/commands.c b/src/commands.c
 index 27853bd..e56f34f 100644
 --- a/src/commands.c
 +++ b/src/commands.c
-@@ -701,23 +701,7 @@ void cmd_resize_set(I3_CMD, long cwidth, const char *mode_width, long cheight, c
+@@ -701,23 +701,28 @@ void cmd_resize_set(I3_CMD, long cwidth, const char *mode_width, long cheight, c
  }
  
- static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
--    if (border_style == BS_NONE) {
--        return 0;
--    }
--    if (border_width >= 0) {
--        return logical_px(border_width);
--    }
--
--    const bool is_floating = con_inside_floating(con) != NULL;
--    /* Load the configured defaults. */
--    if (is_floating && border_style == config.default_floating_border) {
--        return config.default_floating_border_width;
--    } else if (!is_floating && border_style == config.default_border) {
--        return config.default_border_width;
--    } else {
--        /* Use some hardcoded values. */
--        return logical_px(border_style == BS_NORMAL ? 2 : 1);
--    }
-+    return 3;
+-static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
++static int border_width_from_style_orig(border_style_t border_style, long border_width, Con *con) {
+     if (border_style == BS_NONE) {
+         return 0;
+     }
+     if (border_width >= 0) {
+         return logical_px(border_width);
+     }
+ 
+     const bool is_floating = con_inside_floating(con) != NULL;
+     /* Load the configured defaults. */
+     if (is_floating && border_style == config.default_floating_border) {
+         return config.default_floating_border_width;
+     } else if (!is_floating && border_style == config.default_border) {
+         return config.default_border_width;
+     } else {
+         /* Use some hardcoded values. */
+         return logical_px(border_style == BS_NORMAL ? 2 : 1);
+     }
  }
++
++static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
++    int original = border_width_from_style_orig(border_style, border_width, con);
++    return (original < 3 && border_style != BS_NONE) ? 3 : original;
++}
  
  /*
 diff --git a/src/config.c b/src/config.c
