@@ -1,9 +1,9 @@
 diff --git a/include/config_directives.h b/include/config_directives.h
-index e005709..185ea5c 100644
+index 0141b83..7093b18 100644
 --- a/include/config_directives.h
 +++ b/include/config_directives.h
-@@ -71,7 +71,7 @@ CFGFUN(ipc_socket, const char *path);
- CFGFUN(tiling_drag, const char *value);
+@@ -72,7 +72,7 @@ CFGFUN(tiling_drag, const char *value);
+ CFGFUN(tiling_drag_swap_modifier, const char *modifiers);
  CFGFUN(restart_state, const char *path);
  CFGFUN(popup_during_fullscreen, const char *value);
 -CFGFUN(color, const char *colorclass, const char *border, const char *background, const char *text, const char *indicator, const char *child_border);
@@ -12,10 +12,10 @@ index e005709..185ea5c 100644
  CFGFUN(floating_modifier, const char *modifiers);
  CFGFUN(default_border, const char *windowtype, const char *border, const long width);
 diff --git a/include/configuration.h b/include/configuration.h
-index 843e156..985ea16 100644
+index c062ae4..6861806 100644
 --- a/include/configuration.h
 +++ b/include/configuration.h
-@@ -244,7 +242,7 @@ struct Config {
+@@ -247,7 +247,7 @@ struct Config {
          struct Colortriple urgent;
          struct Colortriple placeholder;
          bool got_focused_tab_title;
@@ -25,10 +25,10 @@ index 843e156..985ea16 100644
          struct Colortriple focused;
          struct Colortriple unfocused;
 diff --git a/include/data.h b/include/data.h
-index 1b3c711..94b217d 100644
+index f448d26..3d4ae23 100644
 --- a/include/data.h
 +++ b/include/data.h
-@@ -145,6 +145,24 @@ typedef enum {
+@@ -172,6 +172,24 @@ typedef enum {
      FOCUS_WRAPPING_WORKSPACE = 3
  } focus_wrapping_t;
  
@@ -53,7 +53,7 @@ index 1b3c711..94b217d 100644
  /**
   * Stores a rectangle, for example the size of a window, the child window etc.
   *
-@@ -411,6 +429,12 @@ struct Window {
+@@ -440,6 +458,12 @@ struct Window {
      /** The name of the window. */
      i3String *name;
  
@@ -78,7 +78,7 @@ index fa915fd..cd6f801 100644
 +xmacro(_QUBES_LABEL) \
  xmacro(MANAGER)
 diff --git a/include/window.h b/include/window.h
-index 7b43ab1..39be137 100644
+index 49ef13c..24591be 100644
 --- a/include/window.h
 +++ b/include/window.h
 @@ -40,6 +40,21 @@ void window_update_name(i3Window *win, xcb_get_property_reply_t *prop);
@@ -104,10 +104,10 @@ index 7b43ab1..39be137 100644
   * Updates the CLIENT_LEADER (logical parent window).
   *
 diff --git a/parser-specs/config.spec b/parser-specs/config.spec
-index 617ed13..8f6bb8b 100644
+index d152837..b4fe699 100644
 --- a/parser-specs/config.spec
 +++ b/parser-specs/config.spec
-@@ -57,7 +57,7 @@ state INITIAL:
+@@ -61,7 +61,7 @@ state INITIAL:
    colorclass = 'client.background'
        -> COLOR_SINGLE
    colorclass = 'client.focused_inactive', 'client.focused_tab_title', 'client.focused', 'client.unfocused', 'client.urgent', 'client.placeholder'
@@ -116,7 +116,7 @@ index 617ed13..8f6bb8b 100644
  
  # We ignore comments and 'set' lines (variables).
  state IGNORE_LINE:
-@@ -336,6 +336,10 @@ state COLOR_SINGLE:
+@@ -398,6 +398,10 @@ state COLOR_SINGLE:
        -> call cfg_color_single($colorclass, $color)
  
  # colorclass border background text indicator
@@ -127,7 +127,7 @@ index 617ed13..8f6bb8b 100644
  state COLOR_BORDER:
    border = word
        -> COLOR_BACKGROUND
-@@ -352,13 +356,13 @@ state COLOR_INDICATOR:
+@@ -414,13 +418,13 @@ state COLOR_INDICATOR:
    indicator = word
        -> COLOR_CHILD_BORDER
    end
@@ -145,10 +145,11 @@ index 617ed13..8f6bb8b 100644
  # <exec|exec_always> [--no-startup-id] command
  state EXEC:
 diff --git a/src/commands.c b/src/commands.c
-index 27853bd..e56f34f 100644
+index 8d22b52..cab3be2 100644
 --- a/src/commands.c
 +++ b/src/commands.c
-@@ -701,23 +701,28 @@ void cmd_resize_set(I3_CMD, long cwidth, const char *mode_width, long cheight, c
+@@ -705,7 +705,7 @@ void cmd_resize_set(I3_CMD, long cwidth, const char *mode_width, long cheight, c
+     ysuccess(success);
  }
  
 -static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
@@ -156,33 +157,23 @@ index 27853bd..e56f34f 100644
      if (border_style == BS_NONE) {
          return 0;
      }
-     if (border_width >= 0) {
-         return logical_px(border_width);
-     }
- 
-     const bool is_floating = con_inside_floating(con) != NULL;
-     /* Load the configured defaults. */
-     if (is_floating && border_style == config.default_floating_border) {
-         return config.default_floating_border_width;
-     } else if (!is_floating && border_style == config.default_border) {
-         return config.default_border_width;
-     } else {
-         /* Use some hardcoded values. */
-         return logical_px(border_style == BS_NORMAL ? 2 : 1);
+@@ -725,6 +725,11 @@ static int border_width_from_style(border_style_t border_style, long border_widt
      }
  }
-+
+ 
 +static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
 +    int original = border_width_from_style_orig(border_style, border_width, con);
 +    return (original < 3 && border_style != BS_NONE) ? 3 : original;
 +}
- 
++
  /*
+  * Implementation of 'border normal|pixel [<n>]', 'border none|1pixel|toggle'.
+  *
 diff --git a/src/config.c b/src/config.c
-index e2dd69b..9d08c61 100644
+index 60e0702..7336977 100644
 --- a/src/config.c
 +++ b/src/config.c
-@@ -192,15 +192,99 @@ bool load_configuration(const char *override_configpath, config_load_t load_type
+@@ -195,15 +195,99 @@ bool load_configuration(const char *override_configpath, config_load_t load_type
          x.child_border = draw_util_hex_to_color(cbackground);  \
      } while (0)
  
@@ -289,7 +280,7 @@ index e2dd69b..9d08c61 100644
  
      /* the last argument (indicator color) is ignored for bar colors */
      INIT_COLOR(config.bar.focused, "#4c7899", "#285577", "#ffffff", "#000000");
-@@ -281,6 +365,12 @@ bool load_configuration(const char *override_configpath, config_load_t load_type
+@@ -285,6 +369,12 @@ bool load_configuration(const char *override_configpath, config_load_t load_type
          set_font(&config.font);
      }
  
@@ -303,10 +294,10 @@ index e2dd69b..9d08c61 100644
      Barconfig *current;
      if (load_type != C_VALIDATE) {
 diff --git a/src/config_directives.c b/src/config_directives.c
-index a611da2..37c378f 100644
+index 38b506f..5177ef5 100644
 --- a/src/config_directives.c
 +++ b/src/config_directives.c
-@@ -462,40 +462,65 @@ CFGFUN(popup_during_fullscreen, const char *value) {
+@@ -592,40 +592,65 @@ CFGFUN(popup_during_fullscreen, const char *value) {
  
  CFGFUN(color_single, const char *colorclass, const char *color) {
      /* used for client.background only currently */
@@ -389,10 +380,10 @@ index a611da2..37c378f 100644
  #undef APPLY_COLORS
  }
 diff --git a/src/manage.c b/src/manage.c
-index 56a6d0b..0c99ad1 100644
+index fc4db69..a23d273 100644
 --- a/src/manage.c
 +++ b/src/manage.c
-@@ -113,7 +113,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
+@@ -116,7 +116,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
      xcb_get_window_attributes_reply_t *attr = NULL;
  
      xcb_get_property_cookie_t wm_type_cookie, strut_cookie, state_cookie,
@@ -401,7 +392,7 @@ index 56a6d0b..0c99ad1 100644
          class_cookie, leader_cookie, transient_cookie,
          role_cookie, startup_id_cookie, wm_hints_cookie,
          wm_normal_hints_cookie, motif_wm_hints_cookie, wm_user_time_cookie, wm_desktop_cookie,
-@@ -181,6 +181,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
+@@ -184,6 +184,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
      strut_cookie = GET_PROPERTY(A__NET_WM_STRUT_PARTIAL, UINT32_MAX);
      state_cookie = GET_PROPERTY(A__NET_WM_STATE, UINT32_MAX);
      utf8_title_cookie = GET_PROPERTY(A__NET_WM_NAME, 128);
@@ -410,7 +401,7 @@ index 56a6d0b..0c99ad1 100644
      leader_cookie = GET_PROPERTY(A_WM_CLIENT_LEADER, UINT32_MAX);
      transient_cookie = GET_PROPERTY(XCB_ATOM_WM_TRANSIENT_FOR, UINT32_MAX);
      title_cookie = GET_PROPERTY(XCB_ATOM_WM_NAME, 128);
-@@ -208,6 +210,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
+@@ -211,6 +213,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
      window_update_name_legacy(cwindow, xcb_get_property_reply(conn, title_cookie, NULL));
      window_update_name(cwindow, xcb_get_property_reply(conn, utf8_title_cookie, NULL));
      window_update_icon(cwindow, xcb_get_property_reply(conn, wm_icon_cookie, NULL));
@@ -420,10 +411,10 @@ index 56a6d0b..0c99ad1 100644
      window_update_transient_for(cwindow, xcb_get_property_reply(conn, transient_cookie, NULL));
      window_update_strut_partial(cwindow, xcb_get_property_reply(conn, strut_cookie, NULL));
 diff --git a/src/resize.c b/src/resize.c
-index 6ad92cc..452c0ac 100644
+index 43207fd..1bb1c9d 100644
 --- a/src/resize.c
 +++ b/src/resize.c
-@@ -208,7 +208,7 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
+@@ -229,7 +229,7 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
      }
  
      mask = XCB_CW_BACK_PIXEL;
@@ -433,7 +424,7 @@ index 6ad92cc..452c0ac 100644
      mask |= XCB_CW_OVERRIDE_REDIRECT;
      values[1] = 1;
 diff --git a/src/restore_layout.c b/src/restore_layout.c
-index 6f35d16..1a9e50c 100644
+index c0cb7f0..ddee74a 100644
 --- a/src/restore_layout.c
 +++ b/src/restore_layout.c
 @@ -128,8 +128,8 @@ void restore_connect(void) {
@@ -457,10 +448,10 @@ index 6f35d16..1a9e50c 100644
              });
          /* Make i3 not focus this window. */
 diff --git a/src/tiling_drag.c b/src/tiling_drag.c
-index cce91f2..9a151a8 100644
+index 4311233..bcde034 100644
 --- a/src/tiling_drag.c
 +++ b/src/tiling_drag.c
-@@ -239,7 +239,7 @@ static xcb_window_t create_drop_indicator(Rect rect) {
+@@ -273,7 +273,7 @@ static xcb_window_t create_drop_indicator(Rect rect) {
      uint32_t values[2];
  
      mask = XCB_CW_BACK_PIXEL;
@@ -470,10 +461,10 @@ index cce91f2..9a151a8 100644
      mask |= XCB_CW_OVERRIDE_REDIRECT;
      values[1] = 1;
 diff --git a/src/window.c b/src/window.c
-index 7c65cee..8a85cb2 100644
+index 46d0c5d..6b5dfa7 100644
 --- a/src/window.c
 +++ b/src/window.c
-@@ -135,6 +135,63 @@ void window_update_name_legacy(i3Window *win, xcb_get_property_reply_t *prop) {
+@@ -136,6 +136,63 @@ void window_update_name_legacy(i3Window *win, xcb_get_property_reply_t *prop) {
      free(prop);
  }
  
@@ -538,10 +529,10 @@ index 7c65cee..8a85cb2 100644
   * Updates the CLIENT_LEADER (logical parent window).
   *
 diff --git a/src/x.c b/src/x.c
-index 42df996..2066b6e 100644
+index 6c70413..a33abde 100644
 --- a/src/x.c
 +++ b/src/x.c
-@@ -487,20 +487,31 @@ void x_draw_decoration(Con *con) {
+@@ -495,20 +495,31 @@ void x_draw_decoration(Con *con) {
      /* 1: build deco_params and compare with cache */
      struct deco_render_params *p = scalloc(1, sizeof(struct deco_render_params));
  
@@ -579,7 +570,7 @@ index 42df996..2066b6e 100644
      }
  
      p->border_style = con_border_style(con);
-@@ -510,7 +521,7 @@ void x_draw_decoration(Con *con) {
+@@ -518,7 +529,7 @@ void x_draw_decoration(Con *con) {
      p->con_rect = (struct width_height){r->width, r->height};
      p->con_window_rect = (struct width_height){w->width, w->height};
      p->con_deco_rect = con->deco_rect;
@@ -588,7 +579,7 @@ index 42df996..2066b6e 100644
      p->con_is_leaf = con_is_leaf(con);
      p->parent_layout = con->parent->layout;
  
-@@ -545,16 +556,16 @@ void x_draw_decoration(Con *con) {
+@@ -554,16 +565,16 @@ void x_draw_decoration(Con *con) {
          draw_util_clear_surface(&(con->frame_buffer), (color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
  
          /* top area */
@@ -609,7 +600,7 @@ index 42df996..2066b6e 100644
                              w->x + w->width, 0, r->width - (w->x + w->width), r->height);
      }
  
-@@ -629,8 +640,6 @@ void x_draw_decoration(Con *con) {
+@@ -640,8 +651,6 @@ void x_draw_decoration(Con *con) {
      /* 6: draw the icon and title */
      int text_offset_y = (con->deco_rect.height - config.font.height) / 2;
  
@@ -618,7 +609,7 @@ index 42df996..2066b6e 100644
      const int deco_width = (int)con->deco_rect.width;
      const int title_padding = logical_px(2);
  
-@@ -672,6 +681,7 @@ void x_draw_decoration(Con *con) {
+@@ -684,6 +693,7 @@ void x_draw_decoration(Con *con) {
      }
  
      i3String *title = NULL;
@@ -626,7 +617,7 @@ index 42df996..2066b6e 100644
      if (win == NULL) {
          if (con->title_format == NULL) {
              char *_title;
-@@ -691,6 +701,18 @@ void x_draw_decoration(Con *con) {
+@@ -703,6 +713,18 @@ void x_draw_decoration(Con *con) {
          goto copy_pixmaps;
      }
  
@@ -645,7 +636,7 @@ index 42df996..2066b6e 100644
      /* icon_padding is applied horizontally only, the icon will always use all
       * available vertical space. */
      int icon_size = max(0, con->deco_rect.height - logical_px(2));
-@@ -748,9 +770,7 @@ void x_draw_decoration(Con *con) {
+@@ -763,9 +785,7 @@ void x_draw_decoration(Con *con) {
              icon_size);
      }
  

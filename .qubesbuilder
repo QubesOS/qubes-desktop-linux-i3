@@ -14,5 +14,5 @@ vm:
       - '@PLUGINS_DIR@/source_deb/scripts/debian-quilt @SOURCE_DIR@/series-debian.conf @BUILD_DIR@/debian/patches'
 source:
   files:
-  - url: https://i3wm.org/downloads/i3-4.23.tar.xz
-    sha512: i3-4.23.tar.xz.sha512
+  - url: https://i3wm.org/downloads/i3-@VERSION@.tar.xz
+    sha512: i3-@VERSION@.tar.xz.sha512
