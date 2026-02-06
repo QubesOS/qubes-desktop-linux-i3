@@ -109,15 +109,6 @@ Requires:       %{name} = %{epoch}:%{version}-%{release}
 %description    devel
 Header files for %{name}.
 
-%package        devel-doc
-Summary:        Documentation for the development files of %{name}
-BuildRequires:  doxygen
-BuildArch:      noarch
-Requires:       %{name} = %{epoch}:%{version}-%{release}
-
-%description    devel-doc
-Doxygen generated documentations for %{name}.
-
 %prep
 %autosetup -p1
 
@@ -132,10 +123,6 @@ meson setup --prefix=/usr build && pushd build
 meson compile
 
 popd
-
-echo "TODO: generate doxygen"
-doxygen pseudo-doc.doxygen
-mv pseudo-doc/html pseudo-doc/doxygen
 
 %install
 pushd build
@@ -181,9 +168,7 @@ install -Dpm0644 %{SOURCE1} \
 %license LICENSE
 %{_includedir}/%{name}/
 
-%files devel-doc
 %license LICENSE
-%doc pseudo-doc/doxygen/
 
 %changelog
 @CHANGELOG@
