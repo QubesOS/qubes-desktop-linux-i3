@@ -1,18 +1,20 @@
 diff --git a/include/config_directives.h b/include/config_directives.h
-index fd384c0c..85e7310c 100644
+index fd384c0..bc67065 100644
 --- a/include/config_directives.h
 +++ b/include/config_directives.h
-@@ -72,7 +72,7 @@ CFGFUN(tiling_drag, const char *value);
+@@ -72,8 +72,8 @@ CFGFUN(tiling_drag, const char *value);
  CFGFUN(tiling_drag_swap_modifier, const char *modifiers);
  CFGFUN(restart_state, const char *path);
  CFGFUN(popup_during_fullscreen, const char *value);
 -CFGFUN(color, const char *colorclass, const char *border, const char *background, const char *text, const char *indicator, const char *child_border);
-+CFGFUN(color, const char *colorclass, const char *labelqube, const char *border, const char *background, const char *text, const char *indicator, const char *child_border);
- CFGFUN(color_single, const char *colorclass, const char *color);
+-CFGFUN(color_single, const char *colorclass, const char *color);
++CFGFUN(color, const char *colorclass, const char *qubelabel, const char *border, const char *background, const char *text, const char *indicator, const char *child_border);
++CFGFUN(color_single, const char *colorclass, const char *qubelabel, const char *color);
  CFGFUN(floating_modifier, const char *modifiers);
  CFGFUN(default_border, const char *windowtype, const char *border, const long width);
+ CFGFUN(workspace, const char *workspace, const char *output);
 diff --git a/include/configuration.h b/include/configuration.h
-index c062ae4c..68618067 100644
+index c062ae4..6861806 100644
 --- a/include/configuration.h
 +++ b/include/configuration.h
 @@ -247,7 +247,7 @@ struct Config {
@@ -25,7 +27,7 @@ index c062ae4c..68618067 100644
          struct Colortriple focused;
          struct Colortriple unfocused;
 diff --git a/include/data.h b/include/data.h
-index f448d263..3d4ae235 100644
+index f448d26..3d4ae23 100644
 --- a/include/data.h
 +++ b/include/data.h
 @@ -172,6 +172,24 @@ typedef enum {
@@ -67,7 +69,7 @@ index f448d263..3d4ae235 100644
       * sets "buddy list"). Useful to match specific windows in assignments or
       * for_window. */
 diff --git a/include/i3-atoms_rest.xmacro.h b/include/i3-atoms_rest.xmacro.h
-index fa915fd6..cd6f8015 100644
+index fa915fd..cd6f801 100644
 --- a/include/i3-atoms_rest.xmacro.h
 +++ b/include/i3-atoms_rest.xmacro.h
 @@ -22,4 +22,6 @@ xmacro(_NET_REQUEST_FRAME_EXTENTS) \
@@ -78,7 +80,7 @@ index fa915fd6..cd6f8015 100644
 +xmacro(_QUBES_LABEL) \
  xmacro(MANAGER)
 diff --git a/include/window.h b/include/window.h
-index 49ef13ce..24591bed 100644
+index 49ef13c..24591be 100644
 --- a/include/window.h
 +++ b/include/window.h
 @@ -40,6 +40,21 @@ void window_update_name(i3Window *win, xcb_get_property_reply_t *prop);
@@ -104,7 +106,7 @@ index 49ef13ce..24591bed 100644
   * Updates the CLIENT_LEADER (logical parent window).
   *
 diff --git a/parser-specs/config.spec b/parser-specs/config.spec
-index d1528374..b4fe699c 100644
+index d152837..930d0da 100644
 --- a/parser-specs/config.spec
 +++ b/parser-specs/config.spec
 @@ -61,7 +61,7 @@ state INITIAL:
@@ -116,8 +118,26 @@ index d1528374..b4fe699c 100644
  
  # We ignore comments and 'set' lines (variables).
  state IGNORE_LINE:
-@@ -398,6 +398,10 @@ state COLOR_SINGLE:
-       -> call cfg_color_single($colorclass, $color)
+@@ -392,12 +392,26 @@ state TILING_DRAG:
+   value = 'modifier', 'titlebar'
+       -> TILING_DRAG_MODE
+
+-# client.background <hexcolor>
++# client.background [<qubelabel>] <hexcolor>
+ state COLOR_SINGLE:
++  color_or_label = word
++      -> COLOR_SINGLE_OPTIONAL_LABEL
++
++state COLOR_SINGLE_OPTIONAL_LABEL:
+   color = word
+-      -> call cfg_color_single($colorclass, $color)
++      -> COLOR_SINGLE_END
++  end
++      -> call cfg_color_single($colorclass, NULL, $color_or_label)
++
++state COLOR_SINGLE_END:
++  end
++      -> call cfg_color_single($colorclass, $color_or_label, $color)
  
  # colorclass border background text indicator
 +state COLOR_QUBE:
@@ -127,7 +147,7 @@ index d1528374..b4fe699c 100644
  state COLOR_BORDER:
    border = word
        -> COLOR_BACKGROUND
-@@ -414,13 +418,13 @@ state COLOR_INDICATOR:
+@@ -414,13 +428,13 @@ state COLOR_INDICATOR:
    indicator = word
        -> COLOR_CHILD_BORDER
    end
@@ -145,7 +165,7 @@ index d1528374..b4fe699c 100644
  # <exec|exec_always> [--no-startup-id] command
  state EXEC:
 diff --git a/src/commands.c b/src/commands.c
-index b421abbd..4ec19fc9 100644
+index b421abb..4ec19fc 100644
 --- a/src/commands.c
 +++ b/src/commands.c
 @@ -669,7 +669,7 @@ void cmd_resize_set(I3_CMD, long cwidth, const char *mode_width, long cheight, c
@@ -170,7 +190,7 @@ index b421abbd..4ec19fc9 100644
   * Implementation of 'border normal|pixel [<n>]', 'border none|1pixel|toggle'.
   *
 diff --git a/src/config.c b/src/config.c
-index 884052fd..b86904d7 100644
+index 884052f..b86904d 100644
 --- a/src/config.c
 +++ b/src/config.c
 @@ -191,15 +191,99 @@ bool load_configuration(const char *override_configpath, config_load_t load_type
@@ -294,19 +314,52 @@ index 884052fd..b86904d7 100644
      if (load_type != C_VALIDATE) {
          Barconfig *current;
 diff --git a/src/config_directives.c b/src/config_directives.c
-index 52ab6e14..dc236918 100644
+index 52ab6e1..8e2f1bb 100644
 --- a/src/config_directives.c
 +++ b/src/config_directives.c
-@@ -598,40 +598,65 @@ CFGFUN(popup_during_fullscreen, const char *value) {
+@@ -596,42 +596,73 @@ CFGFUN(popup_during_fullscreen, const char *value) {
+     }
+ }
  
- CFGFUN(color_single, const char *colorclass, const char *color) {
-     /* used for client.background only currently */
+-CFGFUN(color_single, const char *colorclass, const char *color) {
+-    /* used for client.background only currently */
 -    config.client.background = draw_util_hex_to_color(color);
-+    config.client[QUBE_DOM0].background = draw_util_hex_to_color(color);
++static bool qube_label_from_name(const char *name, qube_label_t *label) {
++    static const char *const names[QUBE_NUM_LABELS] = {
++        [QUBE_DOM0] = "dom0", [QUBE_RED] = "red", [QUBE_ORANGE] = "orange",
++        [QUBE_YELLOW] = "yellow", [QUBE_GREEN] = "green", [QUBE_GRAY] = "gray",
++        [QUBE_BLUE] = "blue", [QUBE_PURPLE] = "purple", [QUBE_BLACK] = "black",
++    };
++    for (int i = 0; i < QUBE_NUM_LABELS; i++) {
++        if (strcmp(name, names[i]) == 0) {
++            *label = i;
++            return true;
++        }
++    }
++    return false;
  }
  
 -CFGFUN(color, const char *colorclass, const char *border, const char *background, const char *text, const char *indicator, const char *child_border) {
 -#define APPLY_COLORS(classname)                                                                              \
++CFGFUN(color_single, const char *colorclass, const char *qubelabel, const char *color) {
++    qube_label_t label = QUBE_DOM0;
++    if (qubelabel != NULL && !qube_label_from_name(qubelabel, &label)) {
++        ELOG("Unknown Qubes label for client.background: %s\n", qubelabel);
++        result->has_errors = true;
++        return;
++    }
++
++    const color_t background = draw_util_hex_to_color(color);
++    if (qubelabel != NULL) {
++        config.client[label].background = background;
++    } else {
++        /* Preserve the unlabeled directive's global effect. */
++        for (int i = 0; i < QUBE_NUM_LABELS; i++) {
++            config.client[i].background = background;
++        }
++    }
++}
++
 +CFGFUN(color, const char *colorclass, const char *qubelabel, const char *border, const char *background, const char *text, const char *indicator, const char *child_border) {
 +#define APPLY_COLORS(classname, label)                                                                              \
      do {                                                                                                     \
@@ -345,31 +398,8 @@ index 52ab6e14..dc236918 100644
 -    APPLY_COLORS(unfocused);
 -    APPLY_COLORS(urgent);
 -    APPLY_COLORS(placeholder);
-+    int valid_color = 1;
-+    qube_label_t label = QUBE_DOM0;
-+    if (strcmp(qubelabel, "dom0") == 0) {
-+        label = QUBE_DOM0;
-+    } else if (strcmp(qubelabel, "red") == 0) {
-+        label = QUBE_RED;
-+    } else if (strcmp(qubelabel, "orange") == 0) {
-+        label = QUBE_ORANGE;
-+    } else if (strcmp(qubelabel, "yellow") == 0) {
-+        label = QUBE_YELLOW;
-+    } else if (strcmp(qubelabel, "green") == 0) {
-+        label = QUBE_GREEN;
-+    } else if (strcmp(qubelabel, "gray") == 0) {
-+        label = QUBE_GRAY;
-+    } else if (strcmp(qubelabel, "blue") == 0) {
-+        label = QUBE_BLUE;
-+    } else if (strcmp(qubelabel, "purple") == 0) {
-+        label = QUBE_PURPLE;
-+    } else if (strcmp(qubelabel, "black") == 0) {
-+        label = QUBE_BLACK;
-+    } else {
-+        valid_color = 0;
-+    }
-+
-+    if (valid_color) {
++    qube_label_t label;
++    if (qube_label_from_name(qubelabel, &label)) {
 +        APPLY_COLORS(focused_inactive, label);
 +        APPLY_COLORS(focused, label);
 +        APPLY_COLORS(unfocused, label);
@@ -380,7 +410,7 @@ index 52ab6e14..dc236918 100644
  #undef APPLY_COLORS
  }
 diff --git a/src/manage.c b/src/manage.c
-index 3347d590..3de5f03e 100644
+index 3347d59..3de5f03 100644
 --- a/src/manage.c
 +++ b/src/manage.c
 @@ -113,7 +113,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_cookie_t cooki
@@ -411,7 +441,7 @@ index 3347d590..3de5f03e 100644
      window_update_transient_for(cwindow, xcb_get_property_reply(conn, transient_cookie, NULL));
      window_update_strut_partial(cwindow, xcb_get_property_reply(conn, strut_cookie, NULL));
 diff --git a/src/resize.c b/src/resize.c
-index 43207fd6..1bb1c9de 100644
+index 43207fd..1bb1c9d 100644
 --- a/src/resize.c
 +++ b/src/resize.c
 @@ -229,7 +229,7 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
@@ -424,7 +454,7 @@ index 43207fd6..1bb1c9de 100644
      mask |= XCB_CW_OVERRIDE_REDIRECT;
      values[1] = 1;
 diff --git a/src/restore_layout.c b/src/restore_layout.c
-index ba8199d9..690d1fb8 100644
+index ba8199d..690d1fb 100644
 --- a/src/restore_layout.c
 +++ b/src/restore_layout.c
 @@ -127,8 +127,8 @@ void restore_connect(void) {
@@ -448,7 +478,7 @@ index ba8199d9..690d1fb8 100644
              });
          /* Make i3 not focus this window. */
 diff --git a/src/tiling_drag.c b/src/tiling_drag.c
-index 6992f93a..e70f2b0a 100644
+index 6992f93..e70f2b0 100644
 --- a/src/tiling_drag.c
 +++ b/src/tiling_drag.c
 @@ -273,7 +273,7 @@ static xcb_window_t create_drop_indicator(Rect rect) {
@@ -461,7 +491,7 @@ index 6992f93a..e70f2b0a 100644
      mask |= XCB_CW_OVERRIDE_REDIRECT;
      values[1] = 1;
 diff --git a/src/window.c b/src/window.c
-index 0106c6c4..7de74aa4 100644
+index 0106c6c..7de74aa 100644
 --- a/src/window.c
 +++ b/src/window.c
 @@ -136,6 +136,63 @@ void window_update_name_legacy(i3Window *win, xcb_get_property_reply_t *prop) {
@@ -529,7 +559,7 @@ index 0106c6c4..7de74aa4 100644
   * Updates the CLIENT_LEADER (logical parent window).
   *
 diff --git a/src/x.c b/src/x.c
-index 87ee05c2..9d24f2a6 100644
+index 87ee05c..f8ee4fe 100644
 --- a/src/x.c
 +++ b/src/x.c
 @@ -492,20 +492,31 @@ void x_draw_decoration(Con *con) {
@@ -575,7 +605,7 @@ index 87ee05c2..9d24f2a6 100644
      p->con_window_rect = (struct width_height){w->width, w->height};
      p->con_deco_rect = con->deco_rect;
 -    p->background = config.client.background;
-+    p->background = config.client[QUBE_DOM0].background;
++    p->background = config.client[label].background;
      p->con_is_leaf = con_is_leaf(con);
      p->parent_layout = con->parent->layout;
  
@@ -584,19 +614,19 @@ index 87ee05c2..9d24f2a6 100644
  
          /* top area */
 -        draw_util_rectangle(&(con->frame_buffer), config.client.background,
-+        draw_util_rectangle(&(con->frame_buffer), config.client[QUBE_DOM0].background,
++        draw_util_rectangle(&(con->frame_buffer), p->background,
                              0, 0, r->width, w->y);
          /* bottom area */
 -        draw_util_rectangle(&(con->frame_buffer), config.client.background,
-+        draw_util_rectangle(&(con->frame_buffer), config.client[QUBE_DOM0].background,
++        draw_util_rectangle(&(con->frame_buffer), p->background,
                              0, w->y + w->height, r->width, r->height - (w->y + w->height));
          /* left area */
 -        draw_util_rectangle(&(con->frame_buffer), config.client.background,
-+        draw_util_rectangle(&(con->frame_buffer), config.client[QUBE_DOM0].background,
++        draw_util_rectangle(&(con->frame_buffer), p->background,
                              0, 0, w->x, r->height);
          /* right area */
 -        draw_util_rectangle(&(con->frame_buffer), config.client.background,
-+        draw_util_rectangle(&(con->frame_buffer), config.client[QUBE_DOM0].background,
++        draw_util_rectangle(&(con->frame_buffer), p->background,
                              w->x + w->width, 0, r->width - (w->x + w->width), r->height);
      }
  
